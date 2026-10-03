@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class ShipBehaviour : MonoBehaviour
 {
+
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 25f;
     [SerializeField] private GameObject laserPrefab;
@@ -16,21 +17,38 @@ public class ShipBehaviour : MonoBehaviour
     [SerializeField] private TMP_Text messageField;
 
     private float cooldownCounter = 0f;
-    private List<Color> items = new List<Color>();
-    private int activeItemIndex = -1;
+    public List<Color> items = new List<Color>();
+    public int activeItemIndex = -1;
+    public ShipBehaviour sb;
+    Movement movement;
+    ShipRotation shipRot;
+    ShipShoot shipshoot;
+    ShipPickUpItem shippickupitem;
+    ShipCycleItems shipcycleitems;
+    ShipUseItems shipuseitem;
+    public Transform tf;
 
+    private void Awake()
+    {
+
+
+        movement = new Movement(true, moveSpeed, tf);
+        shipRot = new ShipRotation(rotationSpeed,tf);
+        shipshoot = new ShipShoot(laserPrefab, cooldownTime,tf);
+        shippickupitem = new ShipPickUpItem(itemImageHolder,sb);
+        shipcycleitems = new ShipCycleItems(itemImageHolder,sb);
+        shipuseitem = new ShipUseItems(this.gameObject, movement, shipRot, shipshoot, itemImageHolder);
+        Debug.Log(movement.moveSpeed);
+    }
     // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(Introduction());
+
+        StartCoroutine(ShowMessage("Welcome to Space 4 8. \n Move your ship with the arrows or WASD. \n Shoot with SPACE. \n Gather pickups and cycle with 'Left CTR'.  \n  Use pickups with 'E'."));
     }
-    IEnumerator Introduction() { 
-        introductionField.enabled = true;
-        introductionField.text = "Welcome to Space 4 8. \n Move your ship with the arrows or WASD. \n Shoot with SPACE. \n Gather pickups and cycle with 'Left CTR'.  \n  Use pickups with 'E'.";
-        yield return new WaitForSeconds(5f);
-        introductionField.enabled = false;
-    }
-    IEnumerator ShowMessage(string message) {
+
+    public IEnumerator ShowMessage(string message)
+    {
         messageField.enabled = true;
         messageField.text = message;
         yield return new WaitForSeconds(3f);
@@ -39,113 +57,38 @@ public class ShipBehaviour : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Move();   
-        Rotate();
-        Shoot();
-        CycleItems();
-        UseItem();
+        movement.Move();
+        shipRot.Rotate();
+        shipshoot.Shoot();
+        shipcycleitems.CycleItems();
+        shipuseitem.UseItem();
 
     }
 
-    void Move() {
 
-        transform.position = transform.position + transform.forward * moveSpeed * Input.GetAxis("Vertical") * Time.deltaTime;
-        
-    }
-    void Rotate()
-    {
-        transform.Rotate(transform.up * rotationSpeed * Time.deltaTime * Input.GetAxis("Horizontal"));
-    }
-    void Shoot() { 
-        cooldownCounter += Time.deltaTime;
+    // public void GetScripts()
+    // {
+    //     movement = new Movement(true, moveSpeed);
+    //     shipRot = new ShipRotation(rotationSpeed);
+    //     shipshoot = new ShipShoot(laserPrefab, cooldownTime);
+    //     shippickupitem = new ShipPickUpItem(itemImageHolder);
+    //     shipcycleitems = new ShipCycleItems(itemImageHolder);
+    //     shipuseitem = new ShipUseItems(sb,movement,shipRot,shipshoot,itemImageHolder);
+    // }
 
-        if(Input.GetKeyDown(KeyCode.Space) && cooldownCounter > cooldownTime)
-        {
-            GameObject laser = Instantiate(laserPrefab);
-            laser.transform.position = transform.position;
-            laser.transform.rotation = transform.rotation;
-            Destroy(laser, 3f);
 
-            cooldownCounter = 0f;
 
-        }
 
-        
-    }
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Item")) {
-            PickUpItem(other.gameObject);
-        }
-    }
-    void PickUpItem(GameObject item) {
-
-        Color color = item.gameObject.GetComponent<Renderer>().material.color;
-
-        Destroy(item);
-
-        items.Add(color);
-
-        activeItemIndex = items.Count - 1;
-
-        itemImageHolder.color = items[activeItemIndex];
-        itemImageHolder.enabled = true;
-    }
-    
-    void CycleItems() {
-        if (Input.GetKeyDown(KeyCode.LeftControl))
+        if (other.gameObject.CompareTag("Item"))
         {
-            if (items.Count > 0)
-            {
-                if (activeItemIndex < items.Count - 1)
-                {
-                    activeItemIndex++;
-                }
-                else
-                {
-                    activeItemIndex = 0;
-                }
-                itemImageHolder.color = items[activeItemIndex];
-            }
-            else
-            {
-                itemImageHolder.color = Color.white;
-                activeItemIndex = -1;
-                itemImageHolder.enabled = false;
-            }
-        }        
-    }
-    void UseItem()
-    {
-  
-        if (Input.GetKeyDown(KeyCode.E) && items.Count > 0 && activeItemIndex != -1) {
-
-            if (items[activeItemIndex] == Color.blue) {
-                StartCoroutine(ShowMessage(" +  Move Speed"));
-                moveSpeed += 5;
-            }
-            else if (items[activeItemIndex] == Color.red){
-                StartCoroutine(ShowMessage(" + Fire Rate"));
-                cooldownTime -= 0.1f;
-            }
-            else if(items[activeItemIndex] == Color.green){
-                StartCoroutine(ShowMessage(" + Rotation Speed"));
-                rotationSpeed += 10;
-            }      
-            items.RemoveAt(activeItemIndex);            
-            if (activeItemIndex > 0)
-            {
-                activeItemIndex--;
-                itemImageHolder.color = items[activeItemIndex];
-            }
-            else if(items.Count == 0)
-            {
-                itemImageHolder.color = Color.white;
-                activeItemIndex = -1;
-                itemImageHolder.enabled = false;
-            }
-            
+            shippickupitem.PickUpItem(other.gameObject);
         }
-    }    
+    }
+
+
+
+
 
 }
